@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- HEADER: shows total spent -->
+    <div class="header">
+      <h1>Expense Tracker</h1>
+      <div class="total" id="total-amount">$0.00</div>
+      <div class="sub">Total spent this month</div>
+    </div>
+
+    <!-- SUMMARY CARDS: spending by category -->
+    <div class="summary" id="summary-cards">
+      <!-- filled by JavaScript -->
+    </div>
+
+    <!-- FORM: add a new expense -->
+    <div class="form-card">
+      <h2>Add new expense</h2>
+      <div class="form-row">
+        <input type="text"   id="exp-name"   placeholder="Expense name (e.g. Groceries)" />
+        <input type="number" id="exp-amount" placeholder="Amount ($)" />
+      </div>
+      <div class="form-row">
+        <select id="exp-category">
+          <option value="Food">Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Health">Health</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="date" id="exp-date" />
+      </div>
+      <button class="btn-add" id="btn-add">+ Add Expense</button>
+    </div>
+
+    <!-- EXPENSE LIST: shows all expenses -->
+    <div class="expenses-card">
+      <div class="expenses-header">Recent expenses</div>
+      <div id="expense-list">
+        <!-- filled by JavaScript -->
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+/* ── Reset & base ───────────────────────────────── */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #f0f2f5;
+  color: #1a1a1a;
+  min-height: 100vh;
+  padding: 20px 16px;
+}
+
+/* ── App container ──────────────────────────────── */
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ── Header ─────────────────────────────────────── */
+.header {
+  background: linear-gradient(135deg, #1D9E75 0%, #0F6E56 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+}
+
+.header h1 {
+  font-size: 18px;
+  font-weight: 500;
+  opacity: 0.9;
+  margin-bottom: 6px;
+}
+
+.header .total {
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+
+.header .sub {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* ── Summary cards ──────────────────────────────── */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.summary-card {
+  background: white;
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid #e8e8e8;
+}
+
+.summary-card .label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-card .amount {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.summary-card .count {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 3px;
+}
+
+/* ── Form card ──────────────────────────────────── */
+.form-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  border: 1px solid #e8e8e8;
+}
+
+.form-card h2 {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 14px;
+  color: #1a1a1a;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.form-row input,
+.form-row select {
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fafafa;
+  color: #1a1a1a;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.form-row input:focus,
+.form-row select:focus {
+  border-color: #1D9E75;
+  background: white;
+}
+
+.btn-add {
+  width: 100%;
+  padding: 12px;
+  background: #1D9E75;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background 0.2s;
+}
+
+.btn-add:hover {
+  background: #0F6E56;
+}
+
+/* ── Expense list ───────────────────────────────── */
+.expenses-card {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid #e8e8e8;
+  overflow: hidden;
+}
+
+.expenses-header {
+  padding: 14px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
+  color: #1a1a1a;
+}
+
+.expense-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 18px;
+  border-bottom: 1px solid #f5f5f5;
+  transition: background 0.15s;
+}
+
+.expense-item:last-child { border-bottom: none; }
+.expense-item:hover { background: #fafafa; }
+
+.exp-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exp-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.exp-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.exp-meta {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+.exp-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exp-amount {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.exp-delete {
+  font-size: 13px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.2s;
+}
+
+.exp-delete:hover { color: #e24b4a; }
+
+.empty-state {
+  padding: 32px;
+  text-align: center;
+  color: #aaa;
+  font-size: 14px;
+}
