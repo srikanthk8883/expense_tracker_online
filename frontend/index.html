@@ -41,7 +41,14 @@
       </div>
       <button class="btn-add" id="btn-add">+ Add Expense</button>
     </div>
-
+    <!-- CHART: spending breakdown -->
+    <div class="chart-card" id="chart-section" style="display:none;">
+      <h2>Spending by category</h2>
+      <div class="chart-wrap">
+        <canvas id="spending-chart"></canvas>
+      </div>
+      <div class="legend" id="chart-legend"></div>
+    </div>
     <!-- EXPENSE LIST: shows all expenses -->
     <div class="expenses-card">
       <div class="expenses-header">Recent expenses</div>
@@ -52,6 +59,7 @@
 
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
