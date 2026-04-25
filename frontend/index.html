@@ -10,38 +10,33 @@
 
   <div class="app">
 
-    <!-- HEADER: shows total spent -->
+    <!-- HEADER -->
     <div class="header">
       <h1>Expense Tracker</h1>
       <div class="total" id="total-amount">$0.00</div>
       <div class="sub">Total spent this month</div>
     </div>
 
-    <!-- SUMMARY CARDS: spending by category -->
-    <div class="summary" id="summary-cards">
-      <!-- filled by JavaScript -->
-    </div>
+    <!-- SUMMARY CARDS -->
+    <div class="summary" id="summary-cards"></div>
 
-    <!-- FORM: add a new expense -->
+    <!-- ADD EXPENSE FORM -->
     <div class="form-card">
       <h2>Add new expense</h2>
       <div class="form-row">
-        <input type="text"   id="exp-name"   placeholder="Expense name (e.g. Groceries)" />
-        <input type="number" id="exp-amount" placeholder="Amount ($)" />
+        <input type="text"   id="exp-name"     placeholder="Expense name"/>
+        <input type="number" id="exp-amount"   placeholder="Amount ($)"/>
       </div>
       <div class="form-row">
         <select id="exp-category">
-          <option value="Food">Food</option>
-          <option value="Transport">Transport</option>
-          <option value="Shopping">Shopping</option>
-          <option value="Health">Health</option>
-          <option value="Other">Other</option>
+          <!-- populated by JavaScript from backend -->
         </select>
-        <input type="date" id="exp-date" />
+        <input type="date" id="exp-date"/>
       </div>
       <button class="btn-add" id="btn-add">+ Add Expense</button>
     </div>
-    <!-- CHART: spending breakdown -->
+
+    <!-- CHART -->
     <div class="chart-card" id="chart-section" style="display:none;">
       <h2>Spending by category</h2>
       <div class="chart-wrap">
@@ -49,12 +44,36 @@
       </div>
       <div class="legend" id="chart-legend"></div>
     </div>
-    <!-- EXPENSE LIST: shows all expenses -->
+
+    <!-- MANAGE CATEGORIES -->
+    <div class="form-card">
+      <h2>Manage categories</h2>
+
+      <!-- existing categories as chips -->
+      <div class="cat-chips" id="cat-chips"></div>
+
+      <!-- add new category row -->
+      <div class="cat-add-row">
+        <input
+          type="text"
+          id="new-cat-name"
+          placeholder="New category name..."
+          maxlength="30"
+        />
+        <input
+          type="color"
+          id="new-cat-color"
+          value="#E67E22"
+          title="Pick a color"
+        />
+        <button class="btn-cat" id="btn-add-cat">+ Add</button>
+      </div>
+    </div>
+
+    <!-- EXPENSE LIST -->
     <div class="expenses-card">
       <div class="expenses-header">Recent expenses</div>
-      <div id="expense-list">
-        <!-- filled by JavaScript -->
-      </div>
+      <div id="expense-list"></div>
     </div>
 
   </div>
