@@ -1,7 +1,7 @@
 // ── Backend URL ───────────────────────────────────────────────
 // For local testing:  'http://localhost:3000'
 // For production:     'https://your-actual-render-url.onrender.com'
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://expense-tracker-online-gdhv.onrender.com';
 
 // ── App state ─────────────────────────────────────────────────
 let categories    = [];
