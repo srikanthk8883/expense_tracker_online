@@ -1,21 +1,84 @@
-// ── Backend URL ───────────────────────────────────────────────
-// For local testing:  'http://localhost:3000'
-// For production:     'https://your-actual-render-url.onrender.com'
+// ── Import Supabase client ────────────────────────────────────
+import { supabase } from './supabase-client.js';
+
+// ── Backend URL (Node.js for categories + expenses) ───────────
 const API_URL = 'https://expense-tracker-online-gdhv.onrender.com';
 
 // ── App state ─────────────────────────────────────────────────
 let categories    = [];
 let spendingChart = null;
-
-// ── Set today's date in form ──────────────────────────────────
-document.getElementById('exp-date').valueAsDate = new Date();
+let currentUser   = null;   // stores the logged-in user object
 
 // ─────────────────────────────────────────────────────────────
-// INIT — runs when page loads
-// loads categories first so dropdown is ready before expenses
+// AUTH — handle login, logout, session
+// ─────────────────────────────────────────────────────────────
+
+// Sign in with Google — opens a popup
+document.getElementById('btn-google-login').addEventListener('click', async function () {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.href
+    }
+  });
+  if (error) {
+    console.error('Login error:', error.message);
+    alert('Login failed. Please try again.');
+  }
+});
+
+// Sign out
+document.getElementById('btn-signout').addEventListener('click', async function () {
+  await supabase.auth.signOut();
+  showLoginScreen();
+});
+
+// ── Listen for auth state changes ─────────────────────────────
+// This runs whenever login/logout happens
+// It's the heart of the auth system
+supabase.auth.onAuthStateChange(async function (event, session) {
+  console.log('Auth event:', event);
+
+  if (session && session.user) {
+    // User is logged in
+    currentUser = session.user;
+    showAppScreen();
+    await init();
+  } else {
+    // User is logged out
+    currentUser = null;
+    showLoginScreen();
+  }
+});
+
+// ── Show / hide screens ───────────────────────────────────────
+function showLoginScreen() {
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-screen').style.display   = 'none';
+}
+
+function showAppScreen() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display   = 'block';
+
+  // Show user name and avatar in header
+  const profile = currentUser.user_metadata;
+  document.getElementById('user-name').textContent = profile.full_name || profile.name || 'User';
+
+  const avatar = document.getElementById('user-avatar');
+  if (profile.avatar_url || profile.picture) {
+    avatar.src = profile.avatar_url || profile.picture;
+    avatar.style.display = 'block';
+  } else {
+    avatar.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// INIT — runs after successful login
 // ─────────────────────────────────────────────────────────────
 async function init() {
-  console.log('App starting — API_URL:', API_URL);
+  document.getElementById('exp-date').valueAsDate = new Date();
   await loadCategories();
   await loadExpenses();
 }
@@ -26,17 +89,13 @@ async function init() {
 
 async function loadCategories() {
   try {
-    console.log('Fetching categories...');
     const res = await fetch(API_URL + '/categories');
     if (!res.ok) throw new Error('Status ' + res.status);
     categories = await res.json();
-    console.log('Categories loaded:', categories.length);
     renderCategoryChips();
     renderCategoryDropdown();
   } catch (err) {
     console.error('loadCategories failed:', err.message);
-    document.getElementById('exp-category').innerHTML =
-      '<option value="">Could not load categories</option>';
   }
 }
 
@@ -52,7 +111,6 @@ function renderCategoryChips() {
       <button
         class="cat-chip-remove"
         onclick="deleteCategory(${cat.id}, '${cat.name}')"
-        title="Remove ${cat.name}"
       >✕</button>
     </div>
   `).join('');
@@ -60,10 +118,6 @@ function renderCategoryChips() {
 
 function renderCategoryDropdown() {
   const select = document.getElementById('exp-category');
-  if (categories.length === 0) {
-    select.innerHTML = '<option value="">No categories available</option>';
-    return;
-  }
   select.innerHTML = categories.map(cat =>
     `<option value="${cat.name}">${cat.name}</option>`
   ).join('');
@@ -72,21 +126,12 @@ function renderCategoryDropdown() {
 document.getElementById('btn-add-cat').addEventListener('click', async function () {
   const name  = document.getElementById('new-cat-name').value.trim();
   const color = document.getElementById('new-cat-color').value;
+  if (!name) { alert('Please enter a category name.'); return; }
 
-  if (!name) {
-    alert('Please enter a category name.');
-    return;
-  }
+  const exists = categories.some(c => c.name.toLowerCase() === name.toLowerCase());
+  if (exists) { alert('That category already exists!'); return; }
 
-  const exists = categories.some(c =>
-    c.name.toLowerCase() === name.toLowerCase()
-  );
-  if (exists) {
-    alert('That category already exists!');
-    return;
-  }
-
-  const btn       = document.getElementById('btn-add-cat');
+  const btn = document.getElementById('btn-add-cat');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -96,15 +141,11 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, color })
     });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Failed to save');
-    }
+    if (!res.ok) throw new Error((await res.json()).error);
     document.getElementById('new-cat-name').value = '';
     await loadCategories();
     await loadExpenses();
   } catch (err) {
-    console.error('addCategory failed:', err.message);
     alert(err.message);
   } finally {
     btn.textContent = '+ Add';
@@ -112,33 +153,28 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
   }
 });
 
-async function deleteCategory(id, name) {
-  if (!confirm(`Remove "${name}"? Expenses using it will keep the name.`)) return;
-  try {
-    await fetch(API_URL + '/categories/' + id, { method: 'DELETE' });
-    await loadCategories();
-    await loadExpenses();
-  } catch (err) {
-    console.error('deleteCategory failed:', err.message);
-  }
-}
+window.deleteCategory = async function (id, name) {
+  if (!confirm(`Remove "${name}"?`)) return;
+  await fetch(API_URL + '/categories/' + id, { method: 'DELETE' });
+  await loadCategories();
+  await loadExpenses();
+};
 
 // ─────────────────────────────────────────────────────────────
-// EXPENSES
+// EXPENSES — now filtered by logged-in user
 // ─────────────────────────────────────────────────────────────
 
 async function loadExpenses() {
   try {
-    console.log('Fetching expenses...');
-    const res = await fetch(API_URL + '/expenses');
+    // Pass the user's ID so backend only returns their expenses
+    const res = await fetch(API_URL + '/expenses?user_id=' + currentUser.id);
     if (!res.ok) throw new Error('Status ' + res.status);
     const expenses = await res.json();
-    console.log('Expenses loaded:', expenses.length);
     renderAll(expenses);
   } catch (err) {
     console.error('loadExpenses failed:', err.message);
     document.getElementById('expense-list').innerHTML =
-      '<div class="empty-state">⚠️ Could not connect to server.</div>';
+      '<div class="empty-state">⚠️ Could not load expenses.</div>';
   }
 }
 
@@ -152,12 +188,8 @@ document.getElementById('btn-add').addEventListener('click', async function () {
     alert('Please enter a valid name and amount.');
     return;
   }
-  if (!category) {
-    alert('Please select a category.');
-    return;
-  }
 
-  const btn       = document.getElementById('btn-add');
+  const btn = document.getElementById('btn-add');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -165,14 +197,16 @@ document.getElementById('btn-add').addEventListener('click', async function () {
     const res = await fetch(API_URL + '/expenses', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, amount, category, date })
+      body:    JSON.stringify({
+        name, amount, category, date,
+        user_id: currentUser.id  // tag expense with who added it
+      })
     });
-    if (!res.ok) throw new Error('Status ' + res.status);
+    if (!res.ok) throw new Error('Failed to save');
     document.getElementById('exp-name').value   = '';
     document.getElementById('exp-amount').value = '';
     await loadExpenses();
   } catch (err) {
-    console.error('addExpense failed:', err.message);
     alert('Could not save. Please try again.');
   } finally {
     btn.textContent = '+ Add Expense';
@@ -180,14 +214,14 @@ document.getElementById('btn-add').addEventListener('click', async function () {
   }
 });
 
-async function deleteExpense(id) {
+window.deleteExpense = async function (id) {
   try {
     await fetch(API_URL + '/expenses/' + id, { method: 'DELETE' });
     await loadExpenses();
   } catch (err) {
     console.error('deleteExpense failed:', err.message);
   }
-}
+};
 
 // ─────────────────────────────────────────────────────────────
 // RENDER
@@ -202,8 +236,7 @@ function renderAll(expenses) {
 
 function renderTotal(expenses) {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  document.getElementById('total-amount').textContent =
-    '$' + total.toFixed(2);
+  document.getElementById('total-amount').textContent = '$' + total.toFixed(2);
 }
 
 function renderSummaryCards(expenses) {
@@ -251,23 +284,18 @@ function renderExpenseList(expenses) {
 
 function renderChart(expenses) {
   const section = document.getElementById('chart-section');
-
   const activeCategories = categories.filter(cat =>
     expenses.some(e => e.category === cat.name)
   );
-
   if (activeCategories.length === 0) {
     section.style.display = 'none';
     return;
   }
-
   section.style.display = 'block';
-
   const labels  = activeCategories.map(c => c.name);
   const amounts = activeCategories.map(cat =>
-    expenses
-      .filter(e => e.category === cat.name)
-      .reduce((sum, e) => sum + e.amount, 0)
+    expenses.filter(e => e.category === cat.name)
+            .reduce((sum, e) => sum + e.amount, 0)
   );
   const colors = activeCategories.map(c => c.color);
   const canvas = document.getElementById('spending-chart');
@@ -283,22 +311,15 @@ function renderChart(expenses) {
       data: {
         labels,
         datasets: [{
-          data:            amounts,
-          backgroundColor: colors,
-          borderWidth:     3,
-          borderColor:     '#ffffff',
-          hoverOffset:     8
+          data: amounts, backgroundColor: colors,
+          borderWidth: 3, borderColor: '#ffffff', hoverOffset: 8
         }]
       },
       options: {
-        cutout:  '68%',
+        cutout: '68%',
         plugins: {
           legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ' $' + ctx.parsed.toFixed(2)
-            }
-          }
+          tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.toFixed(2) } }
         }
       }
     });
@@ -313,6 +334,3 @@ function renderChart(expenses) {
       </div>`
     ).join('');
 }
-
-// ── Start ─────────────────────────────────────────────────────
-init();
