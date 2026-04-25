@@ -24,12 +24,12 @@
     <div class="form-card">
       <h2>Add new expense</h2>
       <div class="form-row">
-        <input type="text"   id="exp-name"     placeholder="Expense name"/>
-        <input type="number" id="exp-amount"   placeholder="Amount ($)"/>
+        <input type="text"   id="exp-name"   placeholder="Expense name"/>
+        <input type="number" id="exp-amount" placeholder="Amount ($)"/>
       </div>
       <div class="form-row">
         <select id="exp-category">
-          <!-- populated by JavaScript from backend -->
+          <option value="">Loading categories...</option>
         </select>
         <input type="date" id="exp-date"/>
       </div>
@@ -48,11 +48,7 @@
     <!-- MANAGE CATEGORIES -->
     <div class="form-card">
       <h2>Manage categories</h2>
-
-      <!-- existing categories as chips -->
       <div class="cat-chips" id="cat-chips"></div>
-
-      <!-- add new category row -->
       <div class="cat-add-row">
         <input
           type="text"
@@ -73,7 +69,9 @@
     <!-- EXPENSE LIST -->
     <div class="expenses-card">
       <div class="expenses-header">Recent expenses</div>
-      <div id="expense-list"></div>
+      <div id="expense-list">
+        <div class="empty-state">Loading...</div>
+      </div>
     </div>
 
   </div>

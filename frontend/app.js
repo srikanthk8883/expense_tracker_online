@@ -1,40 +1,51 @@
-// ── Backend URL — your Render URL ────────────────────────────
-const API_URL = 'https://expense-tracker-online-gdhv.onrender.com';
+// ── Backend URL ───────────────────────────────────────────────
+// For local testing:  'http://localhost:3000'
+// For production:     'https://your-actual-render-url.onrender.com'
+const API_URL = 'http://localhost:3000';
 
 // ── App state ─────────────────────────────────────────────────
-// Instead of hardcoded colors, we now load categories from backend
-let categories   = [];   // [{id, name, color}, ...]
+let categories    = [];
 let spendingChart = null;
 
-// ── Set today's date ──────────────────────────────────────────
+// ── Set today's date in form ──────────────────────────────────
 document.getElementById('exp-date').valueAsDate = new Date();
 
 // ─────────────────────────────────────────────────────────────
-// STARTUP — load categories first, then expenses
-// Categories must load first so the dropdown is populated
+// INIT — runs when page loads
+// loads categories first so dropdown is ready before expenses
 // ─────────────────────────────────────────────────────────────
 async function init() {
+  console.log('App starting — API_URL:', API_URL);
   await loadCategories();
   await loadExpenses();
 }
 
 // ─────────────────────────────────────────────────────────────
-// CATEGORIES — load, render chips, populate dropdown
+// CATEGORIES
 // ─────────────────────────────────────────────────────────────
+
 async function loadCategories() {
   try {
-    const res  = await fetch(API_URL + '/categories');
+    console.log('Fetching categories...');
+    const res = await fetch(API_URL + '/categories');
+    if (!res.ok) throw new Error('Status ' + res.status);
     categories = await res.json();
+    console.log('Categories loaded:', categories.length);
     renderCategoryChips();
     renderCategoryDropdown();
   } catch (err) {
-    console.error('Failed to load categories:', err);
+    console.error('loadCategories failed:', err.message);
+    document.getElementById('exp-category').innerHTML =
+      '<option value="">Could not load categories</option>';
   }
 }
 
-// Draw the colored chips in the Manage Categories section
 function renderCategoryChips() {
   const container = document.getElementById('cat-chips');
+  if (categories.length === 0) {
+    container.innerHTML = '<span style="color:#aaa;font-size:13px;">No categories yet</span>';
+    return;
+  }
   container.innerHTML = categories.map(cat => `
     <div class="cat-chip" style="background:${cat.color}">
       ${cat.name}
@@ -47,15 +58,17 @@ function renderCategoryChips() {
   `).join('');
 }
 
-// Fill the dropdown in the Add Expense form
 function renderCategoryDropdown() {
   const select = document.getElementById('exp-category');
+  if (categories.length === 0) {
+    select.innerHTML = '<option value="">No categories available</option>';
+    return;
+  }
   select.innerHTML = categories.map(cat =>
     `<option value="${cat.name}">${cat.name}</option>`
   ).join('');
 }
 
-// ── ADD CATEGORY ──────────────────────────────────────────────
 document.getElementById('btn-add-cat').addEventListener('click', async function () {
   const name  = document.getElementById('new-cat-name').value.trim();
   const color = document.getElementById('new-cat-color').value;
@@ -65,7 +78,6 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
     return;
   }
 
-  // Check if name already exists (case-insensitive)
   const exists = categories.some(c =>
     c.name.toLowerCase() === name.toLowerCase()
   );
@@ -74,7 +86,7 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
     return;
   }
 
-  const btn      = document.getElementById('btn-add-cat');
+  const btn       = document.getElementById('btn-add-cat');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -84,23 +96,15 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, color })
     });
-
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.error || 'Failed to save');
     }
-
-    // Clear the name field, keep color for convenience
     document.getElementById('new-cat-name').value = '';
-
-    // Reload categories so chips and dropdown update
     await loadCategories();
-
-    // Reload expenses so chart updates with new color map
     await loadExpenses();
-
   } catch (err) {
-    console.error('Failed to add category:', err);
+    console.error('addCategory failed:', err.message);
     alert(err.message);
   } finally {
     btn.textContent = '+ Add';
@@ -108,32 +112,31 @@ document.getElementById('btn-add-cat').addEventListener('click', async function 
   }
 });
 
-// ── DELETE CATEGORY ───────────────────────────────────────────
 async function deleteCategory(id, name) {
-  // Warn if expenses use this category
-  if (!confirm(`Remove "${name}" category? Expenses using it will keep the name but lose the color.`)) {
-    return;
-  }
-
+  if (!confirm(`Remove "${name}"? Expenses using it will keep the name.`)) return;
   try {
     await fetch(API_URL + '/categories/' + id, { method: 'DELETE' });
     await loadCategories();
     await loadExpenses();
   } catch (err) {
-    console.error('Failed to delete category:', err);
+    console.error('deleteCategory failed:', err.message);
   }
 }
 
 // ─────────────────────────────────────────────────────────────
 // EXPENSES
 // ─────────────────────────────────────────────────────────────
+
 async function loadExpenses() {
   try {
-    const res      = await fetch(API_URL + '/expenses');
+    console.log('Fetching expenses...');
+    const res = await fetch(API_URL + '/expenses');
+    if (!res.ok) throw new Error('Status ' + res.status);
     const expenses = await res.json();
+    console.log('Expenses loaded:', expenses.length);
     renderAll(expenses);
   } catch (err) {
-    console.error('Failed to load expenses:', err);
+    console.error('loadExpenses failed:', err.message);
     document.getElementById('expense-list').innerHTML =
       '<div class="empty-state">⚠️ Could not connect to server.</div>';
   }
@@ -149,8 +152,12 @@ document.getElementById('btn-add').addEventListener('click', async function () {
     alert('Please enter a valid name and amount.');
     return;
   }
+  if (!category) {
+    alert('Please select a category.');
+    return;
+  }
 
-  const btn      = document.getElementById('btn-add');
+  const btn       = document.getElementById('btn-add');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -160,12 +167,12 @@ document.getElementById('btn-add').addEventListener('click', async function () {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ name, amount, category, date })
     });
-    if (!res.ok) throw new Error('Failed to save');
+    if (!res.ok) throw new Error('Status ' + res.status);
     document.getElementById('exp-name').value   = '';
     document.getElementById('exp-amount').value = '';
     await loadExpenses();
   } catch (err) {
-    console.error('Failed to add expense:', err);
+    console.error('addExpense failed:', err.message);
     alert('Could not save. Please try again.');
   } finally {
     btn.textContent = '+ Add Expense';
@@ -178,13 +185,14 @@ async function deleteExpense(id) {
     await fetch(API_URL + '/expenses/' + id, { method: 'DELETE' });
     await loadExpenses();
   } catch (err) {
-    console.error('Failed to delete:', err);
+    console.error('deleteExpense failed:', err.message);
   }
 }
 
 // ─────────────────────────────────────────────────────────────
 // RENDER
 // ─────────────────────────────────────────────────────────────
+
 function renderAll(expenses) {
   renderTotal(expenses);
   renderSummaryCards(expenses);
@@ -194,13 +202,13 @@ function renderAll(expenses) {
 
 function renderTotal(expenses) {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  document.getElementById('total-amount').textContent = '$' + total.toFixed(2);
+  document.getElementById('total-amount').textContent =
+    '$' + total.toFixed(2);
 }
 
 function renderSummaryCards(expenses) {
   const container = document.getElementById('summary-cards');
   let html = '';
-
   categories.forEach(function (cat) {
     const catExp = expenses.filter(e => e.category === cat.name);
     if (catExp.length === 0) return;
@@ -212,7 +220,6 @@ function renderSummaryCards(expenses) {
         <div class="count">${catExp.length} expense${catExp.length > 1 ? 's' : ''}</div>
       </div>`;
   });
-
   container.innerHTML = html;
 }
 
@@ -222,9 +229,7 @@ function renderExpenseList(expenses) {
     list.innerHTML = '<div class="empty-state">No expenses yet. Add one above!</div>';
     return;
   }
-
   list.innerHTML = expenses.map(function (exp) {
-    // Look up color from our loaded categories
     const cat   = categories.find(c => c.name === exp.category);
     const color = cat ? cat.color : '#888780';
     return `
@@ -247,7 +252,6 @@ function renderExpenseList(expenses) {
 function renderChart(expenses) {
   const section = document.getElementById('chart-section');
 
-  // Build chart data from real categories + their actual colors
   const activeCategories = categories.filter(cat =>
     expenses.some(e => e.category === cat.name)
   );
@@ -266,7 +270,6 @@ function renderChart(expenses) {
       .reduce((sum, e) => sum + e.amount, 0)
   );
   const colors = activeCategories.map(c => c.color);
-
   const canvas = document.getElementById('spending-chart');
 
   if (spendingChart) {
@@ -292,7 +295,9 @@ function renderChart(expenses) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            callbacks: { label: ctx => ' $' + ctx.parsed.toFixed(2) }
+            callbacks: {
+              label: ctx => ' $' + ctx.parsed.toFixed(2)
+            }
           }
         }
       }
@@ -309,5 +314,5 @@ function renderChart(expenses) {
     ).join('');
 }
 
-// ── Start the app ─────────────────────────────────────────────
+// ── Start ─────────────────────────────────────────────────────
 init();
