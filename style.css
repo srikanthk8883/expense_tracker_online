@@ -1,9 +1,5 @@
 /* ── Reset ──────────────────────────────────────────────────── */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -55,7 +51,7 @@ body {
   margin-top: 4px;
 }
 
-/* ── User info in header ─────────────────────────────────────── */
+/* ── User info ───────────────────────────────────────────────── */
 .user-info {
   display: flex;
   align-items: center;
@@ -70,9 +66,7 @@ body {
   object-fit: cover;
 }
 
-.user-details {
-  text-align: right;
-}
+.user-details { text-align: right; }
 
 .user-name {
   font-size: 13px;
@@ -93,9 +87,7 @@ body {
   transition: background 0.2s;
 }
 
-.btn-signout:hover {
-  background: rgba(255,255,255,0.35);
-}
+.btn-signout:hover { background: rgba(255,255,255,0.35); }
 
 /* ── Summary cards ──────────────────────────────────────────── */
 .summary {
@@ -228,17 +220,8 @@ body {
   flex-shrink: 0;
 }
 
-.legend-label {
-  font-size: 12px;
-  color: #888;
-  flex: 1;
-}
-
-.legend-val {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
+.legend-label { font-size: 12px; color: #888; flex: 1; }
+.legend-val   { font-size: 12px; font-weight: 600; color: #1a1a1a; }
 
 /* ── Category chips ─────────────────────────────────────────── */
 .cat-chips {
@@ -371,17 +354,8 @@ body {
   flex-shrink: 0;
 }
 
-.exp-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.exp-meta {
-  font-size: 12px;
-  color: #aaa;
-  margin-top: 2px;
-}
+.exp-name  { font-size: 14px; font-weight: 500; color: #1a1a1a; }
+.exp-meta  { font-size: 12px; color: #aaa; margin-top: 2px; }
 
 .exp-right {
   display: flex;
@@ -389,11 +363,7 @@ body {
   gap: 12px;
 }
 
-.exp-amount {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
+.exp-amount  { font-size: 15px; font-weight: 600; color: #1a1a1a; }
 
 .exp-delete {
   font-size: 13px;
@@ -420,11 +390,7 @@ body {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #f0f2f5 0%, #e8f5f0 100%);
-}
-
-body:has(#login-screen:not([style*="display: none"])) {
-  padding: 0;
-  background: linear-gradient(135deg, #f0f2f5 0%, #e8f5f0 100%);
+  padding: 20px;
 }
 
 .login-card {
@@ -438,10 +404,7 @@ body:has(#login-screen:not([style*="display: none"])) {
   width: 100%;
 }
 
-.login-logo {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
+.login-logo   { font-size: 48px; margin-bottom: 16px; }
 
 .login-title {
   font-size: 24px;
