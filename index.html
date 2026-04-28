@@ -169,6 +169,44 @@
             </div>
           </div>
 
+          <!-- Invite someone — visible to ALL members -->
+          <div class="form-card" style="margin-top:16px;">
+            <h2>Invite someone</h2>
+            <p class="settings-desc">
+              Enter their email address. They'll join when they
+              sign in with that Google account.
+            </p>
+            <div class="input-row">
+              <input
+                type="email"
+                id="invite-email-input"
+                placeholder="friend@gmail.com"
+              />
+              <button class="btn-cat" id="btn-send-invite">Invite</button>
+            </div>
+            <div id="invite-status" style="margin-top:10px;font-size:13px;"></div>
+          </div>
+
+          <!-- Pending invitations — ADMIN ONLY -->
+          <div class="form-card" id="pending-invites-card"
+               style="margin-top:16px;display:none;">
+            <h2>Pending approvals</h2>
+            <p class="settings-desc">
+              These invitations were sent by members and need your approval.
+            </p>
+            <div id="pending-invites-list">
+              <div class="empty-state">No pending invitations.</div>
+            </div>
+          </div>
+
+          <!-- All invitations — shows everyone's sent invites -->
+          <div class="form-card" style="margin-top:16px;">
+            <h2>Sent invitations</h2>
+            <div id="all-invites-list">
+              <div class="empty-state">No invitations sent yet.</div>
+            </div>
+          </div>
+
         </div>
 
       </div>

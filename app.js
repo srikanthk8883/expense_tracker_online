@@ -398,15 +398,18 @@ function showFamilyCard(family, members, role) {
   document.getElementById('app-title').textContent           = family.name;
 
   if (role === 'admin') {
-    document.getElementById('admin-badge').style.display  = 'flex';
-    document.getElementById('rename-card').style.display  = 'block';
-    document.getElementById('rename-family-input').value  = family.name;
+    document.getElementById('admin-badge').style.display       = 'flex';
+    document.getElementById('rename-card').style.display       = 'block';
+    document.getElementById('rename-family-input').value       = family.name;
+    document.getElementById('pending-invites-card').style.display = 'block';
   } else {
-    document.getElementById('admin-badge').style.display  = 'none';
-    document.getElementById('rename-card').style.display  = 'none';
+    document.getElementById('admin-badge').style.display       = 'none';
+    document.getElementById('rename-card').style.display       = 'none';
+    document.getElementById('pending-invites-card').style.display = 'none';
   }
 
   renderMembers(members);
+  loadInvitations(family.id, role);
 }
 
 function renderMembers(members) {
@@ -444,6 +447,168 @@ function renderMembers(members) {
       </div>`;
   }).join('');
 }
+
+// ─────────────────────────────────────────────────────────────
+// INVITATIONS
+// ─────────────────────────────────────────────────────────────
+
+async function loadInvitations(family_id, role) {
+  try {
+    const res  = await fetch(
+      API_URL + '/invitations?family_id=' + family_id +
+      '&user_id=' + currentUser.id
+    );
+    const data = await res.json();
+
+    renderAllInvites(data.all     || []);
+    renderPending(data.pending    || [], role);
+
+  } catch (err) {
+    console.error('loadInvitations failed:', err.message);
+  }
+}
+
+// Render ALL invitations sent (for everyone to see their own)
+function renderAllInvites(invites) {
+  const list = document.getElementById('all-invites-list');
+
+  if (invites.length === 0) {
+    list.innerHTML = '<div class="empty-state">No invitations sent yet.</div>';
+    return;
+  }
+
+  list.innerHTML = invites.map(function (inv) {
+    const statusClass = 'status-' + inv.status;
+    return `
+      <div class="invite-item">
+        <div class="invite-left">
+          <div class="invite-email">${inv.invited_email}</div>
+          <div class="invite-meta">
+            Invited by ${inv.invited_by_name || 'a member'}
+          </div>
+        </div>
+        <span class="invite-status ${statusClass}">
+          ${inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+        </span>
+      </div>`;
+  }).join('');
+}
+
+// Render PENDING invitations — admin only, with Accept/Decline
+function renderPending(pending, role) {
+  const list = document.getElementById('pending-invites-list');
+
+  if (pending.length === 0) {
+    list.innerHTML = '<div class="empty-state">No pending invitations.</div>';
+    return;
+  }
+
+  list.innerHTML = pending.map(function (inv) {
+    return `
+      <div class="invite-item" id="invite-${inv.id}">
+        <div class="invite-left">
+          <div class="invite-email">${inv.invited_email}</div>
+          <div class="invite-meta">
+            Invited by ${inv.invited_by_name || 'a member'}
+          </div>
+        </div>
+        <div class="invite-actions">
+          <button class="btn-accept"
+            onclick="respondToInvite(${inv.id}, 'accepted', ${inv.family_id})">
+            ✓ Accept
+          </button>
+          <button class="btn-decline"
+            onclick="respondToInvite(${inv.id}, 'declined', ${inv.family_id})">
+            ✕ Decline
+          </button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── Send invitation ───────────────────────────────────────────
+document.getElementById('btn-send-invite').addEventListener('click', async function () {
+  const email = document.getElementById('invite-email-input').value.trim().toLowerCase();
+  const statusEl = document.getElementById('invite-status');
+
+  if (!email || !email.includes('@')) {
+    statusEl.innerHTML = '<span class="invite-msg-error">Please enter a valid email address.</span>';
+    return;
+  }
+
+  if (!currentFamily) {
+    statusEl.innerHTML = '<span class="invite-msg-error">No family found.</span>';
+    return;
+  }
+
+  const btn       = document.getElementById('btn-send-invite');
+  btn.textContent = 'Sending...';
+  btn.disabled    = true;
+  statusEl.innerHTML = '';
+
+  try {
+    const profile = currentUser.user_metadata;
+    const res = await fetch(API_URL + '/invitations', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        family_id:       currentFamily.id,
+        invited_by_id:   currentUser.id,
+        invited_by_name: profile.full_name || profile.name || 'A member',
+        invited_email:   email,
+        admin_id:        currentFamily.admin_id
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send invite');
+
+    document.getElementById('invite-email-input').value = '';
+
+    // Show success message
+    if (data.auto_accepted) {
+      statusEl.innerHTML =
+        '<span class="invite-msg-success">✅ Invited and auto-accepted! They can sign in now.</span>';
+    } else {
+      statusEl.innerHTML =
+        '<span class="invite-msg-success">✅ Invite sent! Waiting for admin approval.</span>';
+    }
+
+    // Reload invitations list
+    await loadInvitations(currentFamily.id, data.role || 'member');
+
+  } catch (err) {
+    console.error('sendInvite failed:', err.message);
+    statusEl.innerHTML = `<span class="invite-msg-error">❌ ${err.message}</span>`;
+  } finally {
+    btn.textContent = 'Invite';
+    btn.disabled    = false;
+  }
+});
+
+// ── Accept or decline invitation (admin only) ─────────────────
+window.respondToInvite = async function (invite_id, status, family_id) {
+  try {
+    const res = await fetch(API_URL + '/invitations/' + invite_id, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        status,
+        user_id:   currentUser.id,
+        family_id: currentFamily.id
+      })
+    });
+
+    if (!res.ok) throw new Error('Failed to update invitation');
+
+    // Reload settings to reflect changes
+    await loadFamilySettings();
+
+  } catch (err) {
+    console.error('respondToInvite failed:', err.message);
+    alert('Could not update invitation. Please try again.');
+  }
+};
 
 // ── Create family ─────────────────────────────────────────────
 document.getElementById('btn-create-family').addEventListener('click', async function () {

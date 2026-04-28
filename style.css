@@ -593,3 +593,85 @@ body {
 
 .role-admin  { background: #e8f5f0; color: #0F6E56; }
 .role-member { background: #f0f0f0; color: #666; }
+/* ── Invitation items ───────────────────────────────────────── */
+.invite-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.invite-item:last-child { border-bottom: none; }
+
+.invite-left { flex: 1; }
+
+.invite-email {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.invite-meta {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+.invite-status {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-weight: 500;
+  margin-left: 10px;
+}
+
+.status-pending  { background: #fff8e1; color: #b8860b; }
+.status-accepted { background: #e8f5f0; color: #0F6E56; }
+.status-declined { background: #ffeaea; color: #c0392b; }
+
+/* ── Approve / decline buttons ──────────────────────────────── */
+.invite-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: 10px;
+}
+
+.btn-accept {
+  padding: 5px 12px;
+  background: #1D9E75;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-accept:hover { background: #0F6E56; }
+
+.btn-decline {
+  padding: 5px 12px;
+  background: #ffeaea;
+  color: #c0392b;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-decline:hover { background: #ffcccc; }
+
+/* ── Invite status message ──────────────────────────────────── */
+.invite-msg-success {
+  color: #1D9E75;
+  font-weight: 500;
+}
+
+.invite-msg-error {
+  color: #e24b4a;
+  font-weight: 500;
+}
