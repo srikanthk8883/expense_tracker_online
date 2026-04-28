@@ -314,6 +314,192 @@ app.patch('/family/:id', async function (req, res) {
 });
 
 // ─────────────────────────────────────────────────────────────
+// INVITATIONS
+// ─────────────────────────────────────────────────────────────
+
+// GET /invitations — get all invitations for a family
+app.get('/invitations', async function (req, res) {
+  try {
+    const { family_id, user_id } = req.query;
+    if (!family_id) return res.status(400).json({ error: 'family_id required' });
+
+    // Get ALL invitations for this family
+    const { data: all, error } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('family_id', family_id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Separate pending ones for admin view
+    const pending = all.filter(inv => inv.status === 'pending');
+
+    console.log('GET /invitations — family:', family_id,
+      '| all:', all.length, '| pending:', pending.length);
+
+    res.json({ all, pending });
+
+  } catch (err) {
+    console.error('GET /invitations error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /invitations — send a new invitation
+app.post('/invitations', async function (req, res) {
+  try {
+    const {
+      family_id,
+      invited_by_id,
+      invited_by_name,
+      invited_email,
+      admin_id
+    } = req.body;
+
+    if (!family_id || !invited_by_id || !invited_email) {
+      return res.status(400).json({ error: 'Missing required fields.' });
+    }
+
+    // Check if this email is already a member
+    const { data: existing } = await supabase
+      .from('family_members')
+      .select('id')
+      .eq('family_id', family_id)
+      .eq('user_email', invited_email)
+      .single();
+
+    if (existing) {
+      return res.status(400).json({
+        error: 'This person is already a member of your family.'
+      });
+    }
+
+    // Check if invitation already exists
+    const { data: existingInvite } = await supabase
+      .from('invitations')
+      .select('id, status')
+      .eq('family_id', family_id)
+      .eq('invited_email', invited_email)
+      .single();
+
+    if (existingInvite && existingInvite.status === 'pending') {
+      return res.status(400).json({
+        error: 'An invitation is already pending for this email.'
+      });
+    }
+
+    // ── Key logic: admin invites = auto accepted ──────────────
+    const isAdmin      = invited_by_id === admin_id;
+    const status       = isAdmin ? 'accepted' : 'pending';
+    const auto_accepted = isAdmin;
+
+    // Save the invitation
+    const { data: invitation, error: invErr } = await supabase
+      .from('invitations')
+      .insert([{
+        family_id,
+        invited_by_id,
+        invited_by_name: invited_by_name || 'A member',
+        invited_email,
+        status
+      }])
+      .select()
+      .single();
+
+    if (invErr) throw invErr;
+
+    // If auto-accepted (admin invite) — add to family_members immediately
+    if (auto_accepted) {
+      await supabase
+        .from('family_members')
+        .insert([{
+          family_id,
+          user_id:    invited_email,  // placeholder until they sign in
+          user_email: invited_email,
+          user_name:  invited_email.split('@')[0],
+          role:       'member',
+          status:     'active'
+        }]);
+    }
+
+    console.log('POST /invitations — invited:', invited_email,
+      '| status:', status, '| auto_accepted:', auto_accepted);
+
+    res.status(201).json({ invitation, auto_accepted });
+
+  } catch (err) {
+    console.error('POST /invitations error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /invitations/:id — accept or decline (admin only)
+app.patch('/invitations/:id', async function (req, res) {
+  try {
+    const { status, user_id, family_id } = req.body;
+    const invite_id = req.params.id;
+
+    if (!status || !user_id) {
+      return res.status(400).json({ error: 'status and user_id required' });
+    }
+
+    // Confirm user is the admin
+    const { data: family, error: famErr } = await supabase
+      .from('families')
+      .select('admin_id')
+      .eq('id', family_id)
+      .single();
+
+    if (famErr) throw famErr;
+
+    if (family.admin_id !== user_id) {
+      return res.status(403).json({
+        error: 'Only the admin can accept or decline invitations.'
+      });
+    }
+
+    // Get the invitation details
+    const { data: invite, error: invErr } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('id', invite_id)
+      .single();
+
+    if (invErr) throw invErr;
+
+    // Update invitation status
+    const { error: updateErr } = await supabase
+      .from('invitations')
+      .update({ status })
+      .eq('id', invite_id);
+
+    if (updateErr) throw updateErr;
+
+    // If accepted — add to family_members
+    if (status === 'accepted') {
+      await supabase
+        .from('family_members')
+        .insert([{
+          family_id:  invite.family_id,
+          user_id:    invite.invited_email,  // placeholder until they sign in
+          user_email: invite.invited_email,
+          user_name:  invite.invited_email.split('@')[0],
+          role:       'member',
+          status:     'active'
+        }]);
+    }
+
+    console.log('PATCH /invitations/' + invite_id, '— status:', status);
+    res.json({ message: 'Invitation ' + status + '.' });
+
+  } catch (err) {
+    console.error('PATCH /invitations error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
 // TEST
 // ─────────────────────────────────────────────────────────────
 
