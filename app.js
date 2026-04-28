@@ -70,11 +70,14 @@ function showAppScreen() {
 
   const avatar = document.getElementById('user-avatar');
   if (profile.avatar_url || profile.picture) {
-    avatar.src            = profile.avatar_url || profile.picture;
-    avatar.style.display  = 'block';
+    avatar.src           = profile.avatar_url || profile.picture;
+    avatar.style.display = 'block';
   } else {
-    avatar.style.display  = 'none';
+    avatar.style.display = 'none';
   }
+
+  // ── Auto-join family if invited ───────────────────────────
+  autoJoinFamilyIfInvited();
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -686,5 +689,40 @@ document.getElementById('btn-rename-family').addEventListener('click', async fun
 // ─────────────────────────────────────────────────────────────
 // START
 // ─────────────────────────────────────────────────────────────
+
+// ─────────────────────────────────────────────────────────────
+// AUTO JOIN — check if this user was invited to a family
+// Runs every time the user signs in
+// ─────────────────────────────────────────────────────────────
+async function autoJoinFamilyIfInvited() {
+  try {
+    const profile = currentUser.user_metadata;
+    const res = await fetch(API_URL + '/family/join', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        user_id:    currentUser.id,
+        user_email: currentUser.email.toLowerCase(),
+        user_name:  profile.full_name || profile.name || 'User'
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.joined) {
+      console.log('✅ Auto-joined family:', data.family_id);
+      // If user is on settings tab refresh it
+      const settingsTab = document.getElementById('settings-tab');
+      if (settingsTab && settingsTab.style.display !== 'none') {
+        await loadFamilySettings();
+      }
+    } else {
+      console.log('ℹ️ No invitation found or already in family');
+    }
+
+  } catch (err) {
+    console.error('autoJoinFamilyIfInvited failed:', err.message);
+  }
+}
 
 init();

@@ -499,6 +499,77 @@ app.patch('/invitations/:id', async function (req, res) {
   }
 });
 
+// POST /family/join — auto-join family when invited user signs in
+app.post('/family/join', async function (req, res) {
+  try {
+    const { user_id, user_email, user_name } = req.body;
+
+    if (!user_id || !user_email) {
+      return res.status(400).json({ error: 'user_id and user_email required' });
+    }
+
+    // Check if this user already belongs to a family
+    const { data: existing } = await supabase
+      .from('family_members')
+      .select('id')
+      .eq('user_id', user_id)
+      .eq('status', 'active')
+      .single();
+
+    if (existing) {
+      return res.json({ joined: false, message: 'Already in a family.' });
+    }
+
+    // Check if this email has an accepted invitation
+    const { data: invite, error: invErr } = await supabase
+      .from('invitations')
+      .select('*')
+      .eq('invited_email', user_email.toLowerCase())
+      .eq('status', 'accepted')
+      .single();
+
+    if (invErr || !invite) {
+      return res.json({ joined: false, message: 'No accepted invitation found.' });
+    }
+
+    // Update the placeholder family_member row with real user_id
+    const { error: updateErr } = await supabase
+      .from('family_members')
+      .update({
+        user_id,
+        user_name:  user_name  || user_email.split('@')[0],
+        user_email: user_email
+      })
+      .eq('family_id',  invite.family_id)
+      .eq('user_email', user_email.toLowerCase());
+
+    if (updateErr) {
+      // If update fails try inserting fresh
+      const { error: insertErr } = await supabase
+        .from('family_members')
+        .insert([{
+          family_id:  invite.family_id,
+          user_id,
+          user_name:  user_name  || user_email.split('@')[0],
+          user_email: user_email,
+          role:       'member',
+          status:     'active'
+        }]);
+
+      if (insertErr) throw insertErr;
+    }
+
+    console.log('POST /family/join — user:', user_email,
+      'joined family:', invite.family_id);
+
+    res.json({ joined: true, family_id: invite.family_id });
+
+  } catch (err) {
+    console.error('POST /family/join error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────
 // TEST
 // ─────────────────────────────────────────────────────────────
