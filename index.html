@@ -8,7 +8,7 @@
 </head>
 <body>
 
-  <!-- ── LOGIN SCREEN ── shown when user is not logged in ───── -->
+  <!-- ── LOGIN SCREEN ──────────────────────────────────────── -->
   <div id="login-screen">
     <div class="login-card">
       <div class="login-logo">💰</div>
@@ -26,7 +26,7 @@
     </div>
   </div>
 
-  <!-- ── APP SCREEN ── shown when user is logged in ─────────── -->
+  <!-- ── APP SCREEN ─────────────────────────────────────────── -->
   <div id="app-screen" style="display:none;">
     <div class="app">
 
@@ -34,11 +34,10 @@
       <div class="header">
         <div class="header-top">
           <div>
-            <h1>Expense Tracker</h1>
+            <h1 id="app-title">Expense Tracker</h1>
             <div class="total" id="total-amount">$0.00</div>
             <div class="sub">Total spent this month</div>
           </div>
-          <!-- User info + sign out -->
           <div class="user-info">
             <img id="user-avatar" src="" alt="avatar" class="avatar"/>
             <div class="user-details">
@@ -49,57 +48,131 @@
         </div>
       </div>
 
-      <!-- SUMMARY CARDS -->
-      <div class="summary" id="summary-cards"></div>
-
-      <!-- ADD EXPENSE FORM -->
-      <div class="form-card">
-        <h2>Add new expense</h2>
-        <div class="form-row">
-          <input type="text"   id="exp-name"   placeholder="Expense name"/>
-          <input type="number" id="exp-amount" placeholder="Amount ($)"/>
-        </div>
-        <div class="form-row">
-          <select id="exp-category">
-            <option value="">Loading categories...</option>
-          </select>
-          <input type="date" id="exp-date"/>
-        </div>
-        <button class="btn-add" id="btn-add">+ Add Expense</button>
+      <!-- TAB NAVIGATION -->
+      <div class="tab-nav">
+        <button class="tab-btn active" id="tab-expenses" onclick="showTab('expenses')">
+          💰 Expenses
+        </button>
+        <button class="tab-btn" id="tab-settings" onclick="showTab('settings')">
+          ⚙️ Settings
+        </button>
       </div>
 
-      <!-- CHART -->
-      <div class="chart-card" id="chart-section" style="display:none;">
-        <h2>Spending by category</h2>
-        <div class="chart-wrap">
-          <canvas id="spending-chart"></canvas>
+      <!-- ── EXPENSES TAB ──────────────────────────────────── -->
+      <div id="expenses-tab">
+
+        <!-- SUMMARY CARDS -->
+        <div class="summary" id="summary-cards"></div>
+
+        <!-- ADD EXPENSE FORM -->
+        <div class="form-card" style="margin-top:16px;">
+          <h2>Add new expense</h2>
+          <div class="form-row">
+            <input type="text"   id="exp-name"   placeholder="Expense name"/>
+            <input type="number" id="exp-amount" placeholder="Amount ($)"/>
+          </div>
+          <div class="form-row">
+            <select id="exp-category">
+              <option value="">Loading categories...</option>
+            </select>
+            <input type="date" id="exp-date"/>
+          </div>
+          <button class="btn-add" id="btn-add">+ Add Expense</button>
         </div>
-        <div class="legend" id="chart-legend"></div>
+
+        <!-- CHART -->
+        <div class="chart-card" id="chart-section" style="display:none;margin-top:16px;">
+          <h2>Spending by category</h2>
+          <div class="chart-wrap">
+            <canvas id="spending-chart"></canvas>
+          </div>
+          <div class="legend" id="chart-legend"></div>
+        </div>
+
+        <!-- MANAGE CATEGORIES -->
+        <div class="form-card" style="margin-top:16px;">
+          <h2>Manage categories</h2>
+          <div class="cat-chips" id="cat-chips"></div>
+          <div class="cat-add-row">
+            <input type="text" id="new-cat-name" placeholder="New category name..." maxlength="30"/>
+            <input type="color" id="new-cat-color" value="#E67E22"/>
+            <button class="btn-cat" id="btn-add-cat">+ Add</button>
+          </div>
+        </div>
+
+        <!-- EXPENSE LIST -->
+        <div class="expenses-card" style="margin-top:16px;">
+          <div class="expenses-header">Recent expenses</div>
+          <div id="expense-list">
+            <div class="empty-state">Loading...</div>
+          </div>
+        </div>
+
       </div>
 
-      <!-- MANAGE CATEGORIES -->
-      <div class="form-card">
-        <h2>Manage categories</h2>
-        <div class="cat-chips" id="cat-chips"></div>
-        <div class="cat-add-row">
-          <input
-            type="text"
-            id="new-cat-name"
-            placeholder="New category name..."
-            maxlength="30"
-          />
-          <input type="color" id="new-cat-color" value="#E67E22"/>
-          <button class="btn-cat" id="btn-add-cat">+ Add</button>
-        </div>
-      </div>
+      <!-- ── SETTINGS TAB ──────────────────────────────────── -->
+      <div id="settings-tab" style="display:none;">
 
-      <!-- EXPENSE LIST -->
-      <div class="expenses-card">
-        <div class="expenses-header">Recent expenses</div>
-        <div id="expense-list">
-          <div class="empty-state">Loading...</div>
+        <!-- Family status card — shown conditionally by JS -->
+        <div id="no-family-card" class="form-card">
+          <h2>Create your family</h2>
+          <p class="settings-desc">
+            Create a family to share expenses with your household.
+            You'll become the admin and can invite others to join.
+          </p>
+          <div class="input-row">
+            <input
+              type="text"
+              id="family-name-input"
+              placeholder="e.g. The Johnson Family"
+              maxlength="50"
+            />
+            <button class="btn-cat" id="btn-create-family">Create</button>
+          </div>
         </div>
+
+        <!-- Family info card — shown when user has a family -->
+        <div id="has-family-card" style="display:none;">
+
+          <!-- Family header -->
+          <div class="family-header-card">
+            <div class="family-header-top">
+              <div>
+                <div class="family-title" id="family-display-name">My Family</div>
+                <div class="family-sub-text">Family expense tracker</div>
+              </div>
+              <div id="admin-badge" style="display:none;" class="admin-badge">
+                👑 Admin
+              </div>
+            </div>
+          </div>
+
+          <!-- Rename family — admin only -->
+          <div class="form-card" id="rename-card" style="display:none;margin-top:16px;">
+            <h2>Family name</h2>
+            <div class="input-row">
+              <input
+                type="text"
+                id="rename-family-input"
+                placeholder="Family name"
+                maxlength="50"
+              />
+              <button class="btn-cat" id="btn-rename-family">Save</button>
+            </div>
+          </div>
+
+          <!-- Members list -->
+          <div class="form-card" style="margin-top:16px;">
+            <h2>Family members</h2>
+            <div id="members-list">
+              <div class="empty-state">Loading members...</div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
+      <!-- end settings-tab -->
 
     </div>
   </div>

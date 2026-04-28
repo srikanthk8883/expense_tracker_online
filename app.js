@@ -1,25 +1,36 @@
 // ── Import Supabase client ────────────────────────────────────
 import { supabase } from './supabase-client.js';
 
-// ── Backend URL (Node.js for categories + expenses) ───────────
+// ── Backend URL ───────────────────────────────────────────────
 const API_URL = 'https://expense-tracker-online-gdhv.onrender.com';
 
 // ── App state ─────────────────────────────────────────────────
 let categories    = [];
 let spendingChart = null;
-let currentUser   = null;   // stores the logged-in user object
+let currentUser   = null;
+let currentFamily = null;
 
 // ─────────────────────────────────────────────────────────────
-// AUTH — handle login, logout, session
+// TAB SWITCHING
 // ─────────────────────────────────────────────────────────────
 
-// Sign in with Google — opens a popup
+window.showTab = function (tab) {
+  document.getElementById('expenses-tab').style.display = 'none';
+  document.getElementById('settings-tab').style.display = 'none';
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tab + '-tab').style.display   = 'block';
+  document.getElementById('tab-' + tab).classList.add('active');
+  if (tab === 'settings') loadFamilySettings();
+};
+
+// ─────────────────────────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────────────────────────
+
 document.getElementById('btn-google-login').addEventListener('click', async function () {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo: window.location.href
-    }
+    options:  { redirectTo: window.location.href }
   });
   if (error) {
     console.error('Login error:', error.message);
@@ -27,31 +38,23 @@ document.getElementById('btn-google-login').addEventListener('click', async func
   }
 });
 
-// Sign out
 document.getElementById('btn-signout').addEventListener('click', async function () {
   await supabase.auth.signOut();
   showLoginScreen();
 });
 
-// ── Listen for auth state changes ─────────────────────────────
-// This runs whenever login/logout happens
-// It's the heart of the auth system
 supabase.auth.onAuthStateChange(async function (event, session) {
   console.log('Auth event:', event);
-
   if (session && session.user) {
-    // User is logged in
     currentUser = session.user;
     showAppScreen();
     await init();
   } else {
-    // User is logged out
     currentUser = null;
     showLoginScreen();
   }
 });
 
-// ── Show / hide screens ───────────────────────────────────────
 function showLoginScreen() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app-screen').style.display   = 'none';
@@ -61,22 +64,23 @@ function showAppScreen() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display   = 'block';
 
-  // Show user name and avatar in header
   const profile = currentUser.user_metadata;
-  document.getElementById('user-name').textContent = profile.full_name || profile.name || 'User';
+  document.getElementById('user-name').textContent =
+    profile.full_name || profile.name || 'User';
 
   const avatar = document.getElementById('user-avatar');
   if (profile.avatar_url || profile.picture) {
-    avatar.src = profile.avatar_url || profile.picture;
-    avatar.style.display = 'block';
+    avatar.src            = profile.avatar_url || profile.picture;
+    avatar.style.display  = 'block';
   } else {
-    avatar.style.display = 'none';
+    avatar.style.display  = 'none';
   }
 }
 
 // ─────────────────────────────────────────────────────────────
-// INIT — runs after successful login
+// INIT
 // ─────────────────────────────────────────────────────────────
+
 async function init() {
   document.getElementById('exp-date').valueAsDate = new Date();
   await loadCategories();
@@ -102,7 +106,8 @@ async function loadCategories() {
 function renderCategoryChips() {
   const container = document.getElementById('cat-chips');
   if (categories.length === 0) {
-    container.innerHTML = '<span style="color:#aaa;font-size:13px;">No categories yet</span>';
+    container.innerHTML =
+      '<span style="color:#aaa;font-size:13px;">No categories yet</span>';
     return;
   }
   container.innerHTML = categories.map(cat => `
@@ -118,6 +123,10 @@ function renderCategoryChips() {
 
 function renderCategoryDropdown() {
   const select = document.getElementById('exp-category');
+  if (categories.length === 0) {
+    select.innerHTML = '<option value="">No categories available</option>';
+    return;
+  }
   select.innerHTML = categories.map(cat =>
     `<option value="${cat.name}">${cat.name}</option>`
   ).join('');
@@ -126,12 +135,15 @@ function renderCategoryDropdown() {
 document.getElementById('btn-add-cat').addEventListener('click', async function () {
   const name  = document.getElementById('new-cat-name').value.trim();
   const color = document.getElementById('new-cat-color').value;
+
   if (!name) { alert('Please enter a category name.'); return; }
 
-  const exists = categories.some(c => c.name.toLowerCase() === name.toLowerCase());
+  const exists = categories.some(c =>
+    c.name.toLowerCase() === name.toLowerCase()
+  );
   if (exists) { alert('That category already exists!'); return; }
 
-  const btn = document.getElementById('btn-add-cat');
+  const btn       = document.getElementById('btn-add-cat');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -161,12 +173,11 @@ window.deleteCategory = async function (id, name) {
 };
 
 // ─────────────────────────────────────────────────────────────
-// EXPENSES — now filtered by logged-in user
+// EXPENSES
 // ─────────────────────────────────────────────────────────────
 
 async function loadExpenses() {
   try {
-    // Pass the user's ID so backend only returns their expenses
     const res = await fetch(API_URL + '/expenses?user_id=' + currentUser.id);
     if (!res.ok) throw new Error('Status ' + res.status);
     const expenses = await res.json();
@@ -188,8 +199,12 @@ document.getElementById('btn-add').addEventListener('click', async function () {
     alert('Please enter a valid name and amount.');
     return;
   }
+  if (!category) {
+    alert('Please select a category.');
+    return;
+  }
 
-  const btn = document.getElementById('btn-add');
+  const btn       = document.getElementById('btn-add');
   btn.textContent = 'Saving...';
   btn.disabled    = true;
 
@@ -199,7 +214,7 @@ document.getElementById('btn-add').addEventListener('click', async function () {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         name, amount, category, date,
-        user_id: currentUser.id  // tag expense with who added it
+        user_id: currentUser.id
       })
     });
     if (!res.ok) throw new Error('Failed to save');
@@ -207,6 +222,7 @@ document.getElementById('btn-add').addEventListener('click', async function () {
     document.getElementById('exp-amount').value = '';
     await loadExpenses();
   } catch (err) {
+    console.error('addExpense failed:', err.message);
     alert('Could not save. Please try again.');
   } finally {
     btn.textContent = '+ Add Expense';
@@ -236,7 +252,8 @@ function renderAll(expenses) {
 
 function renderTotal(expenses) {
   const total = expenses.reduce((sum, e) => sum + e.amount, 0);
-  document.getElementById('total-amount').textContent = '$' + total.toFixed(2);
+  document.getElementById('total-amount').textContent =
+    '$' + total.toFixed(2);
 }
 
 function renderSummaryCards(expenses) {
@@ -259,7 +276,8 @@ function renderSummaryCards(expenses) {
 function renderExpenseList(expenses) {
   const list = document.getElementById('expense-list');
   if (expenses.length === 0) {
-    list.innerHTML = '<div class="empty-state">No expenses yet. Add one above!</div>';
+    list.innerHTML =
+      '<div class="empty-state">No expenses yet. Add one above!</div>';
     return;
   }
   list.innerHTML = expenses.map(function (exp) {
@@ -284,18 +302,23 @@ function renderExpenseList(expenses) {
 
 function renderChart(expenses) {
   const section = document.getElementById('chart-section');
+
   const activeCategories = categories.filter(cat =>
     expenses.some(e => e.category === cat.name)
   );
+
   if (activeCategories.length === 0) {
     section.style.display = 'none';
     return;
   }
+
   section.style.display = 'block';
+
   const labels  = activeCategories.map(c => c.name);
   const amounts = activeCategories.map(cat =>
-    expenses.filter(e => e.category === cat.name)
-            .reduce((sum, e) => sum + e.amount, 0)
+    expenses
+      .filter(e => e.category === cat.name)
+      .reduce((sum, e) => sum + e.amount, 0)
   );
   const colors = activeCategories.map(c => c.color);
   const canvas = document.getElementById('spending-chart');
@@ -311,15 +334,22 @@ function renderChart(expenses) {
       data: {
         labels,
         datasets: [{
-          data: amounts, backgroundColor: colors,
-          borderWidth: 3, borderColor: '#ffffff', hoverOffset: 8
+          data:            amounts,
+          backgroundColor: colors,
+          borderWidth:     3,
+          borderColor:     '#ffffff',
+          hoverOffset:     8
         }]
       },
       options: {
-        cutout: '68%',
+        cutout:  '68%',
         plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.toFixed(2) } }
+          legend:  { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ' $' + ctx.parsed.toFixed(2)
+            }
+          }
         }
       }
     });
@@ -334,3 +364,162 @@ function renderChart(expenses) {
       </div>`
     ).join('');
 }
+
+// ─────────────────────────────────────────────────────────────
+// SETTINGS — family management
+// ─────────────────────────────────────────────────────────────
+
+async function loadFamilySettings() {
+  try {
+    const res  = await fetch(API_URL + '/family?user_id=' + currentUser.id);
+    const data = await res.json();
+
+    if (data && data.family) {
+      currentFamily = data.family;
+      showFamilyCard(data.family, data.members, data.role);
+    } else {
+      showNoFamilyCard();
+    }
+  } catch (err) {
+    console.error('loadFamilySettings failed:', err.message);
+  }
+}
+
+function showNoFamilyCard() {
+  document.getElementById('no-family-card').style.display  = 'block';
+  document.getElementById('has-family-card').style.display = 'none';
+}
+
+function showFamilyCard(family, members, role) {
+  document.getElementById('no-family-card').style.display  = 'none';
+  document.getElementById('has-family-card').style.display = 'block';
+
+  document.getElementById('family-display-name').textContent = family.name;
+  document.getElementById('app-title').textContent           = family.name;
+
+  if (role === 'admin') {
+    document.getElementById('admin-badge').style.display  = 'flex';
+    document.getElementById('rename-card').style.display  = 'block';
+    document.getElementById('rename-family-input').value  = family.name;
+  } else {
+    document.getElementById('admin-badge').style.display  = 'none';
+    document.getElementById('rename-card').style.display  = 'none';
+  }
+
+  renderMembers(members);
+}
+
+function renderMembers(members) {
+  const list = document.getElementById('members-list');
+
+  if (!members || members.length === 0) {
+    list.innerHTML = '<div class="empty-state">No members yet.</div>';
+    return;
+  }
+
+  const colors = ['#1D9E75','#534AB7','#BA7517','#E24B4A','#0077CC'];
+
+  list.innerHTML = members.map(function (m) {
+    const initial = (m.user_name || m.user_email || '?')[0].toUpperCase();
+    const isYou   = m.user_id === currentUser.id;
+    const color   = colors[(initial.charCodeAt(0)) % colors.length];
+
+    return `
+      <div class="member-item">
+        <div class="member-left">
+          <div class="member-avatar" style="background:${color}">
+            ${initial}
+          </div>
+          <div>
+            <div class="member-name">
+              ${m.user_name || 'Unknown'}${isYou ? ' (You)' : ''}
+            </div>
+            <div class="member-email">${m.user_email || ''}</div>
+          </div>
+        </div>
+        <span class="member-role-badge
+          ${m.role === 'admin' ? 'role-admin' : 'role-member'}">
+          ${m.role === 'admin' ? '👑 Admin' : 'Member'}
+        </span>
+      </div>`;
+  }).join('');
+}
+
+// ── Create family ─────────────────────────────────────────────
+document.getElementById('btn-create-family').addEventListener('click', async function () {
+  const name = document.getElementById('family-name-input').value.trim();
+  if (!name) { alert('Please enter a family name.'); return; }
+
+  const btn       = document.getElementById('btn-create-family');
+  btn.textContent = 'Creating...';
+  btn.disabled    = true;
+
+  try {
+    const profile = currentUser.user_metadata;
+    const res = await fetch(API_URL + '/family', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        name,
+        user_id:    currentUser.id,
+        user_name:  profile.full_name || profile.name || 'User',
+        user_email: currentUser.email
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Failed to create family');
+    }
+
+    const data = await res.json();
+    currentFamily = data.family;
+    showFamilyCard(data.family, data.members, 'admin');
+
+  } catch (err) {
+    console.error('createFamily failed:', err.message);
+    alert(err.message);
+  } finally {
+    btn.textContent = 'Create';
+    btn.disabled    = false;
+  }
+});
+
+// ── Rename family (admin only) ────────────────────────────────
+document.getElementById('btn-rename-family').addEventListener('click', async function () {
+  const name = document.getElementById('rename-family-input').value.trim();
+  if (!name)        { alert('Please enter a family name.'); return; }
+  if (!currentFamily) return;
+
+  const btn       = document.getElementById('btn-rename-family');
+  btn.textContent = 'Saving...';
+  btn.disabled    = true;
+
+  try {
+    const res = await fetch(API_URL + '/family/' + currentFamily.id, {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, user_id: currentUser.id })
+    });
+
+    if (!res.ok) throw new Error('Failed to rename');
+
+    currentFamily.name = name;
+    document.getElementById('family-display-name').textContent = name;
+    document.getElementById('app-title').textContent           = name;
+    alert('Family name updated! ✅');
+
+  } catch (err) {
+    console.error('renameFamily failed:', err.message);
+    alert('Could not rename. Please try again.');
+  } finally {
+    btn.textContent = 'Save';
+    btn.disabled    = false;
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// START
+// ─────────────────────────────────────────────────────────────
+
+init();
